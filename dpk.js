@@ -1,28 +1,28 @@
-const crypto = require("crypto");
+const container = require("./di/index")
+const constants = require('./lib/constants');
+const crypto = container.resolve("crypto")
 
-exports.deterministicPartitionKey = (event) => {
-  const TRIVIAL_PARTITION_KEY = "0";
-  const MAX_PARTITION_KEY_LENGTH = 256;
-  let candidate;
-
-  if (event) {
-    if (event.partitionKey) {
-      candidate = event.partitionKey;
-    } else {
-      const data = JSON.stringify(event);
-      candidate = crypto.createHash("sha3-512").update(data).digest("hex");
-    }
-  }
-
+const processCandidateKey = (candidate) => {
   if (candidate) {
     if (typeof candidate !== "string") {
       candidate = JSON.stringify(candidate);
     }
   } else {
-    candidate = TRIVIAL_PARTITION_KEY;
+    candidate = constants.TRIVIAL_PARTITION_KEY;
   }
-  if (candidate.length > MAX_PARTITION_KEY_LENGTH) {
-    candidate = crypto.createHash("sha3-512").update(candidate).digest("hex");
+  if (candidate.length > constants.MAX_PARTITION_KEY_LENGTH) {
+    candidate = crypto.createHash(constants.SHA3_512).update(candidate).digest(constants.HEX);
   }
   return candidate;
+};
+
+exports.deterministicPartitionKey = (event) => {
+
+  let candidate;
+
+  if (event) {
+    candidate = event.partitionKey ? event.partitionKey :
+    crypto.createHash("sha3-512").update(JSON.stringify(event)).digest("hex");
+  }
+  return processCandidateKey(candidate);
 };
